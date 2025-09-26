@@ -1,0 +1,1401 @@
+﻿<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Customer Orders & Inquiries</title>
+<link rel="icon" type="image/png" href="icon 200x200-.png">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --primary-color:#0047AB; /* cobalt */
+    --secondary-color:#ffffff;
+    --text-color:#000000;
+    --accent-color:#ff9800;
+    --success-color:#4CAF50;
+    --danger-color:#f44336;
+    --gray-bg:#f0f2f5;
+  }
+  .night-mode{
+    --primary-color:#1a1a2e;
+    --secondary-color:#16213e;
+    --text-color:#e1e1e1;
+    --gray-bg:#0f3460;
+  }
+  body{
+    font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;
+    margin:0;
+    background-color:var(--primary-color);
+    color:var(--text-color);
+    transition:background-color .3s,color .3s;
+  }
+  .container, input, select, textarea, button, table{
+    font-size:16px;
+    font-weight:bold;
+    color:#000000;
+  }
+
+  /* Landing */
+  #landing-page{
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    min-height:100vh; color:white; text-align:center; padding:20px;
+  }
+  .auth-box{
+    background-color:var(--secondary-color);
+    padding:40px; border-radius:10px; box-shadow:0 4px 8px rgba(0,0,0,.2);
+    width:100%; max-width:450px; color:var(--text-color);
+  }
+
+  /* App Description */
+  .app-description{
+    background:rgba(255,255,255,0.1);
+    backdrop-filter:blur(10px);
+    padding:20px; border-radius:10px; margin:20px 0;
+    max-width:600px; line-height:1.6;
+  }
+  .app-description h3{
+    margin-top:0; color:#ffeb3b;
+  }
+
+  /* Language selector styling */
+  .lang-grid{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:8px;
+    margin-top:20px;
+  }
+  .lang-grid button{
+    padding:8px 4px;
+    font-size:12px;
+    border:1px solid #ccc;
+    border-radius:4px;
+    cursor:pointer;
+    background:#f8f9fa;
+    transition:all .2s;
+  }
+  .lang-grid button:hover{
+    background:#e9ecef;
+    transform:translateY(-1px);
+  }
+
+  /* App shell */
+  #app-container{ display:none; min-height:100vh; }
+  header{
+    background-color:var(--secondary-color);
+    padding:15px 20px; display:flex; justify-content:space-between; align-items:center;
+    box-shadow:0 2px 5px rgba(0,0,0,.1);
+  }
+  .logo-container{ display:flex; align-items:center; }
+  .logo-placeholder{
+    width:60px; height:60px; border-radius:50%;
+    background:linear-gradient(45deg,#ff0000,#ff9800,#4CAF50,#2196F3); margin-right:10px;
+  }
+  .company-name{ font-size:20px; font-weight:bold; color:var(--text-color); }
+  .header-controls{ display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+  .header-controls button{ 
+    padding:6px 10px; background:none; border:1px solid #ccc; border-radius:4px; 
+    cursor:pointer; font-size:12px; transition:all .2s;
+  }
+  .header-controls button:hover{ background:#f8f9fa; }
+
+  nav{
+    background-color:var(--secondary-color);
+    padding:10px; display:flex; gap:10px; flex-wrap:wrap; justify-content:center;
+  }
+  nav button{
+    padding:10px 20px; border:none; border-radius:5px; cursor:pointer; font-weight:bold;
+    background-color:var(--accent-color); color:white; transition:opacity .2s;
+  }
+  nav button:hover{ opacity:.85; }
+  main{ padding:20px; }
+  .card{
+    background-color:var(--secondary-color); padding:25px; margin-bottom:20px;
+    border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,.1);
+  }
+  input, select, textarea{
+    width:100%; padding:12px; margin:8px 0; border:1px solid #ccc; border-radius:4px;
+    box-sizing:border-box; font-weight:bold; color:#000; background:#fff;
+  }
+  select option{ background:#fff; color:#000; }
+  button.primary{ background-color:var(--success-color); color:#fff; }
+  button.danger{ background-color:var(--danger-color); color:#fff; }
+  button.secondary{ background-color:#6c757d; color:#fff; }
+  button.export{ background-color:#28a745; color:#fff; }
+  .hidden{ display:none; }
+
+  /* Tables */
+  table{ width:100%; border-collapse:collapse; background:#fff; }
+  th,td{ padding:12px; border-bottom:1px solid #ddd; text-align:left; color:black; }
+  th{ background:var(--accent-color); color:#fff; }
+  .night-mode table{ background:var(--secondary-color); }
+  .night-mode th, .night-mode td{ color:var(--text-color); border-color:rgba(255,255,255,.15); }
+
+  /* History + details */
+  .issue-details{
+    background:#f0f8ff; padding:12px; border-radius:5px; margin:12px 0; border-left:4px solid var(--primary-color);
+  }
+  .issue-details p{ margin:6px 0; }
+  .night-mode .issue-details{ background:#1f2a44; border-left-color:#ff9800; }
+
+  .history-entry{
+    background:#f5f5f5; padding:15px; margin-bottom:15px; border-radius:5px; box-shadow:0 1px 3px rgba(0,0,0,.1);
+  }
+  .night-mode .history-entry{ background:#16213e; }
+  .history-entry-header{
+    display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; border-bottom:1px solid #ddd; padding-bottom:8px;
+  }
+
+  /* ENHANCED STATISTICS LAYOUT */
+  .stats-header{
+    display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:15px;
+  }
+  .export-controls{
+    display:flex; gap:10px; flex-wrap:wrap;
+  }
+  .stats-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));
+    gap:15px;
+    margin-bottom:20px;
+  }
+  .stat-card{
+    background:#fff; color:#000; border-radius:8px; padding:15px; box-shadow:0 2px 5px rgba(0,0,0,.08);
+  }
+  .night-mode .stat-card{ background:var(--secondary-color); color:var(--text-color); }
+  .stat-card h3{ margin:8px 0 12px; font-size:16px; }
+  .chart-wrap{
+    position:relative;
+    height:clamp(180px, 26vh, 260px);
+  }
+  .chart-wrap canvas{
+    width:100% !important;
+    height:100% !important;
+  }
+  .table-wrap{
+    max-height:clamp(200px, 30vh, 320px);
+    overflow:auto;
+    background:#fff;
+    border-radius:6px;
+  }
+  .night-mode .table-wrap{ background:transparent; }
+  .list-wrap{
+    max-height:clamp(180px, 28vh, 280px);
+    overflow:auto;
+  }
+  #stock-stats-table th, #stock-stats-table td{ padding:8px; font-size:14px; }
+
+  /* Year comparison section */
+  .comparison-section{
+    grid-column: 1 / -1;
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(350px, 1fr));
+    gap:15px;
+  }
+
+  /* Responsive */
+  @media (max-width: 600px){
+    .auth-box{ width:100%; padding:20px; }
+    nav button{ width:100%; margin-bottom:5px; }
+    .history-entry-header{ flex-direction:column; align-items:flex-start; }
+    .header-controls{ justify-content:center; }
+    .lang-grid{ grid-template-columns:repeat(3, 1fr); gap:4px; }
+    .stats-header{ flex-direction:column; align-items:stretch; }
+    .export-controls{ justify-content:center; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- Landing Page -->
+  <div id="landing-page">
+    <div class="logo-container" style="margin-bottom:20px;">
+      <div class="logo-placeholder"></div>
+      <div style="color:white;">
+        <div class="company-name" style="color:white;">The Company Name</div>
+        <div data-translate="easy_to_use">Easy to Use</div>
+      </div>
+    </div>
+
+    <h1 data-translate="app_title">Customer Orders & Inquiries</h1>
+
+
+
+
+
+
+    <!-- App Description -->
+    <div class="app-description">
+      <h3 data-translate="universal_solution">🚀 Universal Business Solution</h3>
+      <p data-translate="app_description">
+        A versatile application designed for all types of businesses! Perfect for managing customer orders, tracking inventory, handling inquiries, real estate sales, call center operations, retail shops, and any business selling products or services. This adaptable platform features comprehensive order tracking, stock management, detailed history logs, and powerful statistics with monthly and yearly comparisons to help you make informed business decisions.
+      </p>
+    </div>
+
+
+<div class="auth-box">
+      <h2 id="auth-title" data-translate="signin">Sign In</h2>
+      <input type="email" id="email" placeholder="Email (@gmail.com)" required/>
+      <input type="password" id="password" placeholder="Password" required/>
+      <button onclick="handleAuth()" class="primary" style="width:100%; padding:15px;" data-translate="submit">Submit</button>
+      <p id="toggle-auth" onclick="toggleAuthMode()" style="cursor:pointer; color:var(--primary-color); margin-top:15px;">
+        <span data-translate="no_account">Don't have an account?</span> <b data-translate="signup">Sign Up</b>
+      </p>
+      
+      <!-- Language Selector Grid -->
+      <div class="lang-grid">
+        <button onclick="setLanguage('en')">🇺🇸 EN</button>
+        <button onclick="setLanguage('ar')">ar AR</button>
+        <button onclick="setLanguage('fr')">🇫🇷 FR</button>
+        <button onclick="setLanguage('es')">🇪🇸 ES</button>
+        <button onclick="setLanguage('it')">🇮🇹 IT</button>
+        <button onclick="setLanguage('de')">🇩🇪 DE</button>
+        <button onclick="setLanguage('zh')">🇨🇳 ZH</button>
+        <button onclick="setLanguage('ja')">🇯🇵 JA</button>
+        <button onclick="setLanguage('ru')">🇷🇺 RU</button>
+      </div>
+    </div>
+  </div>
+
+<footer class="footer" style="color:white">
+<p>Built by Hassan, Version: 5.00</p>
+</footer>
+    
+
+  <!-- App -->
+  <div id="app-container">
+    <header>
+      <div class="logo-container">
+        <div class="logo-placeholder"></div>
+        <div>
+          <div class="company-name">The Company Name</div>
+          <div data-translate="easy_to_use">Easy to Use</div>
+        </div>
+      </div>
+      <div class="header-controls">
+        <span id="current-user-display"></span>
+        <button onclick="toggleNightMode()">🌓</button>
+        
+        <!-- Header Language Buttons -->
+        <button onclick="setLanguage('en')">🇺🇸</button>
+        <button onclick="setLanguage('ar')">ar</button>
+        <button onclick="setLanguage('fr')">🇫🇷</button>
+        <button onclick="setLanguage('es')">🇪🇸</button>
+        <button onclick="setLanguage('it')">🇮🇹</button>
+        <button onclick="setLanguage('de')">🇩🇪</button>
+        <button onclick="setLanguage('zh')">🇨🇳</button>
+        <button onclick="setLanguage('ja')">🇯🇵</button>
+        <button onclick="setLanguage('ru')">🇷🇺</button>
+        
+        <button onclick="logout()" class="danger" data-translate="logout">Logout</button>
+      </div>
+    </header>
+
+    <nav>
+      <button onclick="showSection('create-order')" data-translate="create_order">Create Order</button>
+      <button onclick="showSection('open-orders')" data-translate="open_orders">Open Orders</button>
+      <button onclick="showSection('closed-orders')" data-translate="closed_orders">Closed Orders</button>
+      <button onclick="showSection('statistics')" data-translate="statistics">Statistics</button>
+      <button onclick="showSection('services-stocks')" data-translate="services_stocks">Services & Stocks</button>
+      <button id="history-btn" class="hidden" onclick="showSection('history')" data-translate="history">History (Admin)</button>
+      <button id="create-user-btn" class="hidden" onclick="showSection('admin-panel')" data-translate="create_user">Create User (Admin)</button>
+    </nav>
+
+    <main>
+
+      <!-- Create/Edit Order -->
+      <section id="create-order" class="card hidden">
+        <h2 data-translate="create_edit_order">Create / Edit Order</h2>
+        <input type="hidden" id="edit-order-id"/>
+
+        <label data-translate="order_type">Order Type:</label>
+        <select id="order-type" onchange="handleDynamicOrderType()"></select>
+
+        <div id="dynamic-order-input" class="hidden">
+          <input type="text" id="dynamic-order-value" placeholder="Details...">
+        </div>
+
+        <label data-translate="customer_name">Customer Name:</label>
+        <input type="text" id="customer-name" required/>
+
+        <label data-translate="customer_number">Customer Number:</label>
+        <input type="text" id="customer-number" required/>
+
+        <label data-translate="code">Code:</label>
+        <select id="code">
+          <option value="02 Cairo">02 Cairo</option><option value="03 Alex">03 Alex</option><option value="045 Behera">045 Behera</option><option value="046 Matrouh">046 Matrouh</option><option value="048 Monofya">048 Monofya</option><option value="050 Dakahlya">050 Dakahlya</option><option value="055 Sharkya">055 Sharkya</option><option value="062 Suez">062 Suez</option><option value="064 Ismailia">064 Ismailia</option><option value="068 North Sinai">068 North Sinai</option><option value="069 South Sinai">069 South Sinai</option><option value="082 Beni Swief">082 Beni Swief</option><option value="084 Fayoum">084 Fayoum</option><option value="086 Minia">086 Minia</option><option value="088 Asyout">088 Asyout</option><option value="092 Wadi Algedid">092 Wadi Algedid</option><option value="096 Qena">096 Qena</option>
+          <option value="015 WE">015 WE</option><option value="010 Vodafone">010 Vodafone</option><option value="012 Orange">012 Orange</option>
+<option value="011 Etisalat">011 Etisalat</option>
+<option value="None">None</option>
+        </select>
+
+        <label data-translate="address">Address:</label>
+        <input type="text" id="address"/>
+
+        <label data-translate="agent">Agent:</label>
+        <input type="text" id="agent" readonly/>
+
+        <label data-translate="date_opened">Date Opened:</label>
+        <input type="date" id="date-opened" required/>
+
+        <label data-translate="order_details">Order Details:</label>
+        <textarea id="order-details" rows="3"></textarea>
+
+        <div id="closing-section" class="hidden">
+          <hr/>
+          <label data-translate="completion_notes">Completion Notes:</label>
+          <textarea id="completion-notes" rows="3"></textarea>
+
+          <label data-translate="quantity_sold">Quantity Sold:</label>
+          <input type="number" id="quantity-sold" min="0" value="0"/>
+
+          <label data-translate="date_closed">Date Closed:</label>
+          <input type="date" id="date-closed"/>
+          <button onclick="closeOrder()" class="primary" data-translate="close_order">Close Order</button>
+        </div>
+
+        <button onclick="saveOrder()" class="primary" style="margin-top:12px;" data-translate="save_order">Save Order</button>
+        <button onclick="resetForm()" class="secondary" data-translate="cancel">Cancel</button>
+      </section>
+
+      <!-- Open Orders -->
+      <section id="open-orders" class="card hidden">
+        <h2 data-translate="open_orders_list">Open Orders</h2>
+        <input type="text" id="search-open" onkeyup="searchOrders('open')" data-translate="search_placeholder" placeholder="Search Open Orders..." style="background:white;">
+        <div id="open-orders-list"></div>
+      </section>
+
+      <!-- Closed Orders -->
+      <section id="closed-orders" class="card hidden">
+        <h2 data-translate="closed_orders_list">Closed Orders</h2>
+        <input type="text" id="search-closed" onkeyup="searchOrders('closed')" data-translate="search_placeholder" placeholder="Search Closed Orders..." style="background:white;">
+        <div id="closed-orders-list"></div>
+      </section>
+
+      <!-- Enhanced Statistics with Export -->
+      <section id="statistics" class="card hidden">
+        <div class="stats-header">
+          <h2 data-translate="statistics_dashboard">Statistics Dashboard</h2>
+          <div class="export-controls">
+            <button onclick="exportToExcel()" class="export" data-translate="export_excel">📊 Export to Excel</button>
+            <button onclick="printStatistics()" class="secondary" data-translate="print_stats">🖨️ Print Stats</button>
+          </div>
+        </div>
+        
+        <div class="stats-grid">
+          <div class="stat-card">
+            <h3 data-translate="order_status">Order Status</h3>
+            <div class="chart-wrap">
+              <canvas id="statusChart"></canvas>
+            </div>
+          </div>
+          <div class="stat-card">
+            <h3 data-translate="monthly_comparison">Monthly Comparison</h3>
+            <div class="chart-wrap">
+              <canvas id="monthlyChart"></canvas>
+            </div>
+          </div>
+          <div class="stat-card">
+            <h3 data-translate="orders_by_type">Orders by Type</h3>
+            <div id="type-stats" class="list-wrap"></div>
+          </div>
+          <div class="stat-card">
+            <h3 data-translate="current_stock_levels">Current Stock Levels</h3>
+            <div class="table-wrap">
+              <table id="stock-stats-table"></table>
+            </div>
+          </div>
+          
+          <!-- Year Comparison Section -->
+          <div class="comparison-section">
+            <div class="stat-card">
+              <h3 data-translate="yearly_comparison">Yearly Comparison</h3>
+              <div class="chart-wrap">
+                <canvas id="yearlyChart"></canvas>
+              </div>
+            </div>
+            <div class="stat-card">
+              <h3 data-translate="sales_performance">Sales Performance</h3>
+              <div class="chart-wrap">
+                <canvas id="salesChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Services & Stocks -->
+      <section id="services-stocks" class="card hidden">
+        <h2 data-translate="manage_stocks">Manage Services & Stocks</h2>
+        <p data-translate="stock_desc">Add, edit, or delete categories for your business inventory.</p>
+
+        <div style="display:flex; gap:10px; margin-bottom:20px;">
+          <input type="text" id="stock-search" data-translate="search_categories" placeholder="Search Categories..." style="background:white; flex:1;">
+          <button onclick="searchStocks()" class="secondary">🔍</button>
+        </div>
+
+        <div class="card" style="background-color:#f9f9f9;">
+          <h4 id="stock-form-title" data-translate="add_category">Add New Category</h4>
+          <select id="parent-category"><option value="" data-translate="main_category">Main Category</option></select>
+          <input type="text" id="new-category-name" data-translate="name_placeholder" placeholder="Name">
+          <input type="number" id="new-category-stock" data-translate="stock_placeholder" placeholder="Initial Stock (Optional)">
+          <input type="hidden" id="editing-stock-id">
+          <button id="stock-action-btn" onclick="saveStockCategory()" class="primary" data-translate="add">Add</button>
+          <button id="cancel-edit-btn" onclick="cancelEditStock()" class="secondary hidden" data-translate="cancel">Cancel</button>
+        </div>
+
+        <div id="stock-tree"></div>
+      </section>
+
+      <!-- History -->
+      <section id="history" class="card hidden">
+        <h2 data-translate="history_log">Business Activity History (Admin Only)</h2>
+        <button onclick="clearHistory()" class="danger" data-translate="clear_history">Clear History</button>
+        <div id="history-list" style="margin-top:20px;"></div>
+      </section>
+
+      <!-- Admin Panel -->
+      <section id="admin-panel" class="card hidden">
+        <h2 data-translate="create_new_user">Create New User</h2>
+        <input type="email" id="new-user-email" data-translate="email_placeholder" placeholder="Email (@gmail.com)">
+        <input type="password" id="new-user-pass" data-translate="password_placeholder" placeholder="Password">
+        <button onclick="createNewUser()" class="primary" data-translate="create_user_btn">Create User</button>
+      </section>
+
+    </main>
+  </div>
+
+<script>
+  const ADMIN_EMAIL="bflying98@gmail.com";
+  const ADMIN_PASS="Catismypet@123";
+
+
+
+  let state={ currentUser:null, currentLang:'en', nightMode:false, currentView:'open-orders' };
+  let db={ users:[], orders:[], stocks:[], history:[] };
+
+  // COMPREHENSIVE TRANSLATIONS FOR ALL 9 LANGUAGES (Updated for new terminology)
+  const translations={
+    en:{
+      easy_to_use:"Easy to Use", app_title:"Customer Orders & Inquiries",
+      universal_solution:"🚀 Universal Business Solution",
+      app_description:"A versatile application designed for all types of businesses! Perfect for managing customer orders, tracking inventory, handling inquiries, real estate sales, call center operations, retail shops, and any business selling products or services. This adaptable platform features comprehensive order tracking, stock management, detailed history logs, and powerful statistics with monthly and yearly comparisons to help you make informed business decisions.",
+      signin:"Sign In", signup:"Sign Up", submit:"Submit", no_account:"Don't have an account?", have_account:"Already have an account?",
+      logout:"Logout", create_order:"Create Order", open_orders:"Open Orders", closed_orders:"Closed Orders",
+      statistics:"Statistics", services_stocks:"Services & Stocks", history:"History (Admin)",
+      create_user:"Create User (Admin)", create_edit_order:"Create / Edit Order", order_type:"Order Type",
+      customer_name:"Customer Name", customer_number:"Customer Number", code:"Code",
+      address:"Address", agent:"Agent", date_opened:"Date Opened", order_details:"Order Details",
+      completion_notes:"Completion Notes", quantity_sold:"Quantity Sold", date_closed:"Date Closed",
+      close_order:"Close Order", save_order:"Save Order", cancel:"Cancel", open_orders_list:"Open Orders",
+      closed_orders_list:"Closed Orders", statistics_dashboard:"Statistics Dashboard", order_status:"Order Status",
+      monthly_comparison:"Monthly Comparison", yearly_comparison:"Yearly Comparison", sales_performance:"Sales Performance",
+      current_stock_levels:"Current Stock Levels", orders_by_type:"Orders by Type",
+      manage_stocks:"Manage Services & Stocks", stock_desc:"Add, edit, or delete categories for your business inventory.",
+      add_category:"Add New Category", add:"Add", edit:"Edit", delete:"Delete", open:"Open", closed:"Closed",
+      clear_history:"Clear History", create_new_user:"Create New User", create_user_btn:"Create User",
+      search:"Search...", update:"Update", updating:"Updating...", action:"Action", history_entry:"History Entry",
+      order_details_label:"Order Details", order_actions:"Actions", delete_entry:"Delete Entry",
+      confirm_delete_entry:"Are you sure you want to delete this history entry?",
+      search_placeholder:"Search...", search_categories:"Search Categories...", main_category:"Main Category",
+      name_placeholder:"Name", stock_placeholder:"Initial Stock (Optional)", email_placeholder:"Email (@gmail.com)",
+      password_placeholder:"Password", export_excel:"Export to Excel", print_stats:"Print Statistics"
+    },
+    ar:{
+      easy_to_use:"سهل الاستخدام", app_title:"طلبات العملاء والاستفسارات",
+      universal_solution:"🚀 حل تجاري شامل",
+      app_description:"تطبيق متعدد الاستخدامات مصمم لجميع أنواع الأعمال! مثالي لإدارة طلبات العملاء وتتبع المخزون والتعامل مع الاستفسارات ومبيعات العقارات وعمليات مراكز الاتصال والمتاجر وأي عمل يبيع منتجات أو خدمات. تتميز هذه المنصة القابلة للتكيف بتتبع شامل للطلبات وإدارة المخزون وسجلات تاريخية مفصلة وإحصائيات قوية مع مقارنات شهرية وسنوية لمساعدتك في اتخاذ قرارات عمل مدروسة.",
+      signin:"تسجيل الدخول", signup:"إنشاء حساب", submit:"إرسال", no_account:"ليس لديك حساب؟", have_account:"لديك حساب بالفعل؟",
+      logout:"تسجيل خروج", create_order:"إنشاء طلب", open_orders:"الطلبات المفتوحة", closed_orders:"الطلبات المغلقة",
+      statistics:"الإحصائيات", services_stocks:"الخدمات والمخزون", history:"السجل (المسؤول)",
+      create_user:"إنشاء مستخدم (المسؤول)", create_edit_order:"إنشاء / تعديل طلب", order_type:"نوع الطلب",
+      customer_name:"اسم العميل", customer_number:"رقم العميل", code:"الكود",
+      address:"العنوان", agent:"الوكيل", date_opened:"تاريخ الفتح", order_details:"تفاصيل الطلب",
+      completion_notes:"ملاحظات الإكمال", quantity_sold:"الكمية المباعة", date_closed:"تاريخ الإغلاق",
+      close_order:"إغلاق الطلب", save_order:"حفظ الطلب", cancel:"إلغاء", open_orders_list:"الطلبات المفتوحة",
+      closed_orders_list:"الطلبات المغلقة", statistics_dashboard:"لوحة الإحصائيات", order_status:"حالة الطلب",
+      monthly_comparison:"مقارنة شهرية", yearly_comparison:"مقارنة سنوية", sales_performance:"أداء المبيعات",
+      current_stock_levels:"مستويات المخزون الحالية", orders_by_type:"الطلبات حسب النوع",
+      manage_stocks:"إدارة الخدمات والمخزون", stock_desc:"أضف، عدّل أو احذف فئات مخزون عملك.",
+      add_category:"إضافة فئة جديدة", add:"إضافة", edit:"تعديل", delete:"حذف", open:"مفتوح", closed:"مغلق",
+      clear_history:"مسح السجل", create_new_user:"إنشاء مستخدم جديد", create_user_btn:"إنشاء مستخدم",
+      search:"بحث...", update:"تحديث", updating:"جارٍ التحديث...", action:"الإجراء", history_entry:"معلومات السجل",
+      order_details_label:"تفاصيل الطلب", order_actions:"الإجراءات", delete_entry:"حذف السجل",
+      confirm_delete_entry:"هل أنت متأكد من حذف هذا السجل؟",
+      search_placeholder:"بحث...", search_categories:"البحث في الفئات...", main_category:"الفئة الرئيسية",
+      name_placeholder:"الاسم", stock_placeholder:"المخزون الأولي (اختياري)", email_placeholder:"البريد الإلكتروني (@gmail.com)",
+      password_placeholder:"كلمة المرور", export_excel:"تصدير إلى Excel", print_stats:"طباعة الإحصائيات"
+    },
+    fr:{
+      easy_to_use:"Facile à Utiliser", app_title:"Commandes et Demandes Clients",
+      universal_solution:"🚀 Solution Business Universelle",
+      app_description:"Une application polyvalente conçue pour tous types d'entreprises ! Parfaite pour gérer les commandes clients, suivre l'inventaire, traiter les demandes, ventes immobilières, opérations de centre d'appels, magasins de détail, et toute entreprise vendant des produits ou services. Cette plateforme adaptable offre un suivi complet des commandes, gestion d'inventaire, historiques détaillés, et statistiques puissantes avec comparaisons mensuelles et annuelles pour vous aider à prendre des décisions commerciales éclairées.",
+      signin:"Se Connecter", signup:"S'inscrire", submit:"Soumettre", no_account:"Vous n'avez pas de compte?", have_account:"Vous avez déjà un compte?",
+      logout:"Déconnexion", create_order:"Créer Commande", open_orders:"Commandes Ouvertes", closed_orders:"Commandes Fermées",
+      statistics:"Statistiques", services_stocks:"Services & Stocks", history:"Historique (Admin)",
+      create_user:"Créer Utilisateur (Admin)", create_edit_order:"Créer / Modifier Commande", order_type:"Type de Commande",
+      customer_name:"Nom du Client", customer_number:"Numéro Client", code:"Code",
+      address:"Adresse", agent:"Agent", date_opened:"Date d'Ouverture", order_details:"Détails de la Commande",
+      completion_notes:"Notes de Finalisation", quantity_sold:"Quantité Vendue", date_closed:"Date de Fermeture",
+      close_order:"Fermer la Commande", save_order:"Enregistrer", cancel:"Annuler", open_orders_list:"Commandes Ouvertes",
+      closed_orders_list:"Commandes Fermées", statistics_dashboard:"Tableau de Bord", order_status:"État des Commandes",
+      monthly_comparison:"Comparaison Mensuelle", yearly_comparison:"Comparaison Annuelle", sales_performance:"Performance des Ventes",
+      current_stock_levels:"Niveaux de Stock Actuels", orders_by_type:"Commandes par Type",
+      manage_stocks:"Gérer les Stocks", stock_desc:"Ajouter, modifier ou supprimer des catégories d'inventaire.",
+      add_category:"Ajouter Catégorie", add:"Ajouter", edit:"Modifier", delete:"Supprimer", open:"Ouvert", closed:"Fermé",
+      clear_history:"Effacer l'historique", create_new_user:"Créer un nouvel utilisateur", create_user_btn:"Créer",
+      search:"Rechercher...", update:"Mettre à jour", updating:"Mise à jour...", action:"Action", history_entry:"Entrée Historique",
+      order_details_label:"Détails de la Commande", order_actions:"Actions", delete_entry:"Supprimer l'Entrée",
+      confirm_delete_entry:"Êtes-vous sûr de vouloir supprimer cette entrée?",
+      search_placeholder:"Rechercher...", search_categories:"Rechercher des Catégories...", main_category:"Catégorie Principale",
+      name_placeholder:"Nom", stock_placeholder:"Stock Initial (Optionnel)", email_placeholder:"Email (@gmail.com)",
+      password_placeholder:"Mot de passe", export_excel:"Exporter vers Excel", print_stats:"Imprimer les Statistiques"
+    },
+    es:{
+      easy_to_use:"Fácil de Usar", app_title:"Pedidos e Consultas de Clientes",
+      universal_solution:"🚀 Solución Empresarial Universal",
+      app_description:"¡Una aplicación versátil diseñada para todo tipo de negocios! Perfecta para gestionar pedidos de clientes, rastrear inventario, manejar consultas, ventas inmobiliarias, operaciones de call center, tiendas, y cualquier negocio que venda productos o servicios. Esta plataforma adaptable cuenta con seguimiento integral de pedidos, gestión de inventario, registros históricos detallados, y estadísticas potentes con comparaciones mensuales y anuales para ayudarte a tomar decisiones comerciales informadas.",
+      signin:"Iniciar Sesión", signup:"Registrarse", submit:"Enviar", no_account:"¿No tienes cuenta?", have_account:"¿Ya tienes cuenta?",
+      logout:"Cerrar Sesión", create_order:"Crear Pedido", open_orders:"Pedidos Abiertos", closed_orders:"Pedidos Cerrados",
+      statistics:"Estadísticas", services_stocks:"Servicios y Stock", history:"Historial (Admin)",
+      create_user:"Crear Usuario (Admin)", create_edit_order:"Crear / Editar Pedido", order_type:"Tipo de Pedido",
+      customer_name:"Nombre del Cliente", customer_number:"Número de Cliente", code:"Code",
+      address:"Dirección", agent:"Agente", date_opened:"Fecha de Apertura", order_details:"Detalles del Pedido",
+      completion_notes:"Notas de Finalización", quantity_sold:"Cantidad Vendida", date_closed:"Fecha de Cierre",
+      close_order:"Cerrar Pedido", save_order:"Guardar", cancel:"Cancelar", open_orders_list:"Pedidos Abiertos",
+      closed_orders_list:"Pedidos Cerrados", statistics_dashboard:"Panel de Estadísticas", order_status:"Estado de Pedidos",
+      monthly_comparison:"Comparación Mensual", yearly_comparison:"Comparación Anual", sales_performance:"Rendimiento de Ventas",
+      current_stock_levels:"Niveles de Stock Actuales", orders_by_type:"Pedidos por Tipo",
+      manage_stocks:"Gestionar Stock", stock_desc:"Agregar, editar o eliminar categorías de inventario.",
+      add_category:"Añadir Categoría", add:"Añadir", edit:"Editar", delete:"Eliminar", open:"Abierto", closed:"Cerrado",
+      clear_history:"Borrar historial", create_new_user:"Crear nuevo usuario", create_user_btn:"Crear",
+      search:"Buscar...", update:"Actualizar", updating:"Actualizando...", action:"Acción", history_entry:"Entrada del Historial",
+      order_details_label:"Detalles del Pedido", order_actions:"Acciones", delete_entry:"Eliminar Entrada",
+      confirm_delete_entry:"¿Estás seguro de que quieres eliminar esta entrada?",
+      search_placeholder:"Buscar...", search_categories:"Buscar Categorías...", main_category:"Categoría Principal",
+      name_placeholder:"Nombre", stock_placeholder:"Stock Inicial (Opcional)", email_placeholder:"Email (@gmail.com)",
+      password_placeholder:"Contraseña", export_excel:"Exportar a Excel", print_stats:"Imprimir Estadísticas"
+    },
+    it:{
+      easy_to_use:"Facile da Usare", app_title:"Ordini e Richieste Clienti",
+      universal_solution:"🚀 Soluzione Business Universale",
+      app_description:"Un'applicazione versatile progettata per tutti i tipi di business! Perfetta per gestire ordini clienti, tracciare inventario, gestire richieste, vendite immobiliari, operazioni call center, negozi, e qualsiasi business che vende prodotti o servizi. Questa piattaforma adattabile offre tracking completo degli ordini, gestione inventario, cronologie dettagliate, e statistiche potenti con confronti mensili e annuali per aiutarti a prendere decisioni commerciali informate.",
+      signin:"Accedi", signup:"Registrati", submit:"Invia", no_account:"Non hai un account?", have_account:"Hai già un account?",
+      logout:"Esci", create_order:"Crea Ordine", open_orders:"Ordini Aperti", closed_orders:"Ordini Chiusi",
+      statistics:"Statistiche", services_stocks:"Servizi e Magazzino", history:"Cronologia (Admin)",
+      create_user:"Crea Utente (Admin)", create_edit_order:"Crea/Modifica Ordine", order_type:"Tipo Ordine",
+      customer_name:"Nome Cliente", customer_number:"Numero Cliente", code:"Code",
+      address:"Indirizzo", agent:"Agente", date_opened:"Data Apertura", order_details:"Dettagli Ordine",
+      completion_notes:"Note di Completamento", quantity_sold:"Quantità Venduta", date_closed:"Data Chiusura",
+      close_order:"Chiudi Ordine", save_order:"Salva", cancel:"Annulla", open_orders_list:"Ordini Aperti",
+      closed_orders_list:"Ordini Chiusi", statistics_dashboard:"Dashboard Statistiche", order_status:"Stato Ordini",
+      monthly_comparison:"Confronto Mensile", yearly_comparison:"Confronto Annuale", sales_performance:"Performance Vendite",
+      current_stock_levels:"Livelli Stock Attuali", orders_by_type:"Ordini per Tipo",
+      manage_stocks:"Gestisci Magazzino", stock_desc:"Aggiungi, modifica o elimina categorie inventario.",
+      add_category:"Nuova Categoria", add:"Aggiungi", edit:"Modifica", delete:"Elimina", open:"Aperto", closed:"Chiuso",
+      clear_history:"Cancella cronologia", create_new_user:"Crea nuovo utente", create_user_btn:"Crea",
+      search:"Cerca...", update:"Aggiorna", updating:"Aggiornamento...", action:"Azione", history_entry:"Voce Cronologia",
+      order_details_label:"Dettagli Ordine", order_actions:"Azioni", delete_entry:"Elimina Voce",
+      confirm_delete_entry:"Sei sicuro di voler eliminare questa voce?",
+      search_placeholder:"Cerca...", search_categories:"Cerca Categorie...", main_category:"Categoria Principale",
+      name_placeholder:"Nome", stock_placeholder:"Stock Iniziale (Opzionale)", email_placeholder:"Email (@gmail.com)",
+      password_placeholder:"Password", export_excel:"Esporta in Excel", print_stats:"Stampa Statistiche"
+    },
+    de:{
+      easy_to_use:"Einfach zu Verwenden", app_title:"Kundenbestellungen & Anfragen",
+      universal_solution:"🚀 Universelle Business-Lösung",
+      app_description:"Eine vielseitige Anwendung für alle Arten von Unternehmen! Perfekt für die Verwaltung von Kundenbestellungen, Bestandsverfolgung, Bearbeitung von Anfragen, Immobilienverkäufe, Call-Center-Betrieb, Einzelhandelsgeschäfte und jedes Unternehmen, das Produkte oder Dienstleistungen verkauft. Diese anpassbare Plattform bietet umfassendes Bestelltracking, Bestandsverwaltung, detaillierte Historien und leistungsstarke Statistiken mit monatlichen und jährlichen Vergleichen, um fundierte Geschäftsentscheidungen zu treffen.",
+      signin:"Anmelden", signup:"Registrieren", submit:"Absenden", no_account:"Kein Konto?", have_account:"Bereits ein Konto?",
+      logout:"Abmelden", create_order:"Bestellung erstellen", open_orders:"Offene Bestellungen", closed_orders:"Abgeschlossene Bestellungen",
+      statistics:"Statistiken", services_stocks:"Services & Bestände", history:"Verlauf (Admin)",
+      create_user:"Benutzer erstellen (Admin)", create_edit_order:"Erstellen/Bearbeiten", order_type:"Bestelltyp",
+      customer_name:"Kundenname", customer_number:"Kundennummer", code:"Code",
+      address:"Adresse", agent:"Agent", date_opened:"Eröffnungsdatum", order_details:"Bestelldetails",
+      completion_notes:"Abschlussnotizen", quantity_sold:"Verkaufte Menge", date_closed:"Abschlussdatum",
+      close_order:"Bestellung abschließen", save_order:"Speichern", cancel:"Abbrechen", open_orders_list:"Offene Bestellungen",
+      closed_orders_list:"Abgeschlossene Bestellungen", statistics_dashboard:"Statistik-Dashboard", order_status:"Bestellstatus",
+      monthly_comparison:"Monatsvergleich", yearly_comparison:"Jahresvergleich", sales_performance:"Verkaufsleistung",
+      current_stock_levels:"Aktuelle Lagerbestände", orders_by_type:"Bestellungen nach Typ",
+      manage_stocks:"Bestände verwalten", stock_desc:"Inventarkategorien hinzufügen, bearbeiten oder löschen.",
+      add_category:"Neue Kategorie", add:"Hinzufügen", edit:"Bearbeiten", delete:"Löschen", open:"Offen", closed:"Geschlossen",
+      clear_history:"Verlauf löschen", create_new_user:"Neuen Benutzer erstellen", create_user_btn:"Erstellen",
+      search:"Suchen...", update:"Aktualisieren", updating:"Aktualisiere...", action:"Aktion", history_entry:"Verlaufseintrag",
+      order_details_label:"Bestelldetails", order_actions:"Aktionen", delete_entry:"Eintrag löschen",
+      confirm_delete_entry:"Sind Sie sicher, dass Sie diesen Eintrag löschen möchten?",
+      search_placeholder:"Suchen...", search_categories:"Kategorien suchen...", main_category:"Hauptkategorie",
+      name_placeholder:"Name", stock_placeholder:"Anfangsbestand (Optional)", email_placeholder:"Email (@gmail.com)",
+      password_placeholder:"Passwort", export_excel:"Nach Excel exportieren", print_stats:"Statistiken drucken"
+    },
+    zh:{
+      easy_to_use:"易于使用", app_title:"客户订单与询问",
+      universal_solution:"🚀 通用商业解决方案",
+      app_description:"专为所有类型企业设计的多功能应用程序！完美适用于管理客户订单、跟踪库存、处理询问、房地产销售、呼叫中心运营、零售店铺以及任何销售产品或服务的企业。这个适应性强的平台具有全面的订单跟踪、库存管理、详细历史记录和强大的统计功能，提供月度和年度比较，帮助您做出明智的商业决策。",
+      signin:"登录", signup:"注册", submit:"提交", no_account:"还没有账户？", have_account:"已有账户？",
+      logout:"退出", create_order:"创建订单", open_orders:"待处理订单", closed_orders:"已完成订单",
+      statistics:"统计", services_stocks:"服务与库存", history:"历史记录（管理员）",
+      create_user:"创建用户（管理员）", create_edit_order:"创建/编辑订单", order_type:"订单类型",
+      customer_name:"客户姓名", customer_number:"客户编号", code:"位置",
+      address:"地址", agent:"代理", date_opened:"开启日期", order_details:"订单详情",
+      completion_notes:"完成备注", quantity_sold:"销售数量", date_closed:"关闭日期",
+      close_order:"关闭订单", save_order:"保存", cancel:"取消", open_orders_list:"待处理列表",
+      closed_orders_list:"已完成列表", statistics_dashboard:"统计面板", order_status:"订单状态",
+      monthly_comparison:"月度对比", yearly_comparison:"年度对比", sales_performance:"销售业绩",
+      current_stock_levels:"当前库存水平", orders_by_type:"按类型分类订单",
+      manage_stocks:"管理库存", stock_desc:"添加、编辑或删除库存类别。",
+      add_category:"新增类别", add:"添加", edit:"编辑", delete:"删除", open:"开放", closed:"关闭",
+      clear_history:"清除历史", create_new_user:"创建新用户", create_user_btn:"创建",
+      search:"搜索...", update:"更新", updating:"正在更新...", action:"操作", history_entry:"历史记录条目",
+      order_details_label:"订单详情", order_actions:"操作", delete_entry:"删除条目",
+      confirm_delete_entry:"您确定要删除此历史记录条目吗？",
+      search_placeholder:"搜索...", search_categories:"搜索类别...", main_category:"主类别",
+      name_placeholder:"名称", stock_placeholder:"初始库存（可选）", email_placeholder:"邮箱 (@gmail.com)",
+      password_placeholder:"密码", export_excel:"导出到Excel", print_stats:"打印统计"
+    },
+    ja:{
+      easy_to_use:"使いやすい", app_title:"顧客注文と問合せ",
+      universal_solution:"🚀 汎用ビジネスソリューション",
+      app_description:"あらゆるタイプのビジネス向けに設計された多目的アプリケーション！顧客注文の管理、在庫追跡、問合せ処理、不動産販売、コールセンター運営、小売店、および製品やサービスを販売するあらゆるビジネスに最適です。この適応性の高いプラットフォームは、包括的な注文追跡、在庫管理、詳細な履歴ログ、月次および年次比較による強力な統計機能を備え、情報に基づいたビジネス決定を支援します。",
+      signin:"ログイン", signup:"登録", submit:"送信", no_account:"アカウントをお持ちでないですか？", have_account:"既にアカウントをお持ちですか？",
+      logout:"ログアウト", create_order:"注文作成", open_orders:"未完了注文", closed_orders:"完了済み注文",
+      statistics:"統計", services_stocks:"サービス・在庫", history:"履歴（管理者）",
+      create_user:"ユーザー作成（管理者）", create_edit_order:"作成／編集", order_type:"注文タイプ",
+      customer_name:"顧客名", customer_number:"顧客番号", code:"場所",
+      address:"住所", agent:"担当者", date_opened:"開始日", order_details:"注文詳細",
+      completion_notes:"完了メモ", quantity_sold:"販売数量", date_closed:"完了日",
+      close_order:"注文完了", save_order:"保存", cancel:"キャンセル", open_orders_list:"未完了一覧",
+      closed_orders_list:"完了済み一覧", statistics_dashboard:"統計ダッシュボード", order_status:"注文ステータス",
+      monthly_comparison:"月別比較", yearly_comparison:"年別比較", sales_performance:"売上実績",
+      current_stock_levels:"現在の在庫レベル", orders_by_type:"タイプ別注文",
+      manage_stocks:"在庫管理", stock_desc:"在庫カテゴリの追加、編集、削除。",
+      add_category:"新規カテゴリ", add:"追加", edit:"編集", delete:"削除", open:"未完了", closed:"完了済み",
+      clear_history:"履歴を消去", create_new_user:"新規ユーザー作成", create_user_btn:"作成",
+      search:"検索...", update:"更新", updating:"更新中...", action:"アクション", history_entry:"履歴エントリ",
+      order_details_label:"注文詳細", order_actions:"アクション", delete_entry:"エントリを削除",
+      confirm_delete_entry:"この履歴エントリを削除してもよろしいですか？",
+      search_placeholder:"検索...", search_categories:"カテゴリを検索...", main_category:"メインカテゴリ",
+      name_placeholder:"名前", stock_placeholder:"初期在庫（オプション）", email_placeholder:"メール (@gmail.com)",
+      password_placeholder:"パスワード", export_excel:"Excelにエクスポート", print_stats:"統計を印刷"
+    },
+    ru:{
+      easy_to_use:"Легко Использовать", app_title:"Заказы и Запросы Клиентов",
+      universal_solution:"🚀 Универсальное Бизнес-Решение",
+      app_description:"Универсальное приложение, разработанное для всех типов бизнеса! Идеально для управления заказами клиентов, отслеживания инвентаря, обработки запросов, продаж недвижимости, операций колл-центра, розничных магазинов и любого бизнеса, продающего товары или услуги. Эта адаптивная платформа включает комплексное отслеживание заказов, управление запасами, подробные исторические журналы и мощную статистику с месячными и годовыми сравнениями для принятия обоснованных бизнес-решений.",
+      signin:"Войти", signup:"Зарегистрироваться", submit:"Отправить", no_account:"Нет аккаунта?", have_account:"Уже есть аккаунт?",
+      logout:"Выйти", create_order:"Создать заказ", open_orders:"Открытые заказы", closed_orders:"Закрытые заказы",
+      statistics:"Статистика", services_stocks:"Услуги и склад", history:"История (Админ)",
+      create_user:"Создать пользователя (Админ)", create_edit_order:"Создать/редактировать", order_type:"Тип заказа",
+      customer_name:"Имя клиента", customer_number:"Номер клиента", code:"Местоположение",
+      address:"Адрес", agent:"Агент", date_opened:"Дата открытия", order_details:"Детали заказа",
+      completion_notes:"Заметки о завершении", quantity_sold:"Проданное количество", date_closed:"Дата закрытия",
+      close_order:"Закрыть заказ", save_order:"Сохранить", cancel:"Отмена", open_orders_list:"Открытые заказы",
+      closed_orders_list:"Закрытые заказы", statistics_dashboard:"Панель статистики", order_status:"Статус заказов",
+      monthly_comparison:"Сравнение по месяцам", yearly_comparison:"Сравнение по годам", sales_performance:"Показатели продаж",
+      current_stock_levels:"Текущие уровни запасов", orders_by_type:"Заказы по типу",
+      manage_stocks:"Управление запасами", stock_desc:"Добавление, редактирование или удаление категорий запасов.",
+      add_category:"Новая категория", add:"Добавить", edit:"Редактировать", delete:"Удалить", open:"Открыто", closed:"Закрыто",
+      clear_history:"Очистить историю", create_new_user:"Создать нового пользователя", create_user_btn:"Создать",
+      search:"Поиск...", update:"Обновить", updating:"Обновление...", action:"Действие", history_entry:"Запись истории",
+      order_details_label:"Детали заказа", order_actions:"Действия", delete_entry:"Удалить запись",
+      confirm_delete_entry:"Вы уверены, что хотите удалить эту запись истории?",
+      search_placeholder:"Поиск...", search_categories:"Поиск категорий...", main_category:"Основная категория",
+      name_placeholder:"Имя", stock_placeholder:"Начальный запас (Опционально)", email_placeholder:"Email (@gmail.com)",
+      password_placeholder:"Пароль", export_excel:"Экспорт в Excel", print_stats:"Печать статистики"
+    }
+  };
+
+  document.addEventListener('DOMContentLoaded',()=>{
+    loadData(); checkAuth(); applyTheme(); applyLanguage();
+  });
+
+
+
+  function loadData(){
+    const storedDb=localStorage.getItem('customerOrdersDb');
+    if(storedDb) db=JSON.parse(storedDb);
+    const storedState=localStorage.getItem('customerOrdersState');
+    if(storedState) state=Object.assign(state, JSON.parse(storedState));
+    if(db.users.length===0){
+      db.users.push({email:ADMIN_EMAIL,password:ADMIN_PASS,isAdmin:true});
+      initializeDefaultStocks();
+    }
+    // ensure history IDs
+    db.history.forEach(e=>{ if(!e.id) e.id='h_'+Date.now()+Math.random().toString(36).slice(2,7); });
+    saveData();
+  }
+  function saveData(){
+    localStorage.setItem('customerOrdersDb', JSON.stringify(db));
+    localStorage.setItem('customerOrdersState', JSON.stringify(state));
+  }
+  function initializeDefaultStocks(){
+    db.stocks=[
+      {id:'c1',name:'Product Orders',stock:null,parentId:null},
+      {id:'c2',name:'Service Requests',stock:100,parentId:null},
+      {id:'c3',name:'Information Updates',stock:null,parentId:null},
+      {id:'c4',name:'Customer Inquiries',stock:null,parentId:null},
+      {id:'c5',name:'Sales Orders',stock:null,parentId:null},
+      {id:'dyn_med',name:'Medicine/Healthcare:...',stock:null,parentId:null,isDynamic:true},
+      {id:'dyn_retail',name:'Retail Products:...',stock:null,parentId:null,isDynamic:true},
+      {id:'dyn_other',name:'Other Business:...',stock:null,parentId:null,isDynamic:true}
+    ];
+  }
+
+  // History logger with snapshot
+  function logHistory(action, details, relatedOrderId=null, orderSnapshot=null){
+    if(!state.currentUser) return;
+    const snapshot = orderSnapshot ? JSON.parse(JSON.stringify(orderSnapshot)) : null;
+    db.history.unshift({
+      id:'h_'+Date.now()+Math.random().toString(36).slice(2,7),
+      timestamp:new Date().toLocaleString(),
+      user:state.currentUser.email,
+      action, details,
+      orderId:relatedOrderId,
+      snapshot
+    });
+    saveData();
+    if(state.currentView==='history') renderHistory();
+  }
+
+  // Auth
+  let authMode='signin';
+  function toggleAuthMode(){
+    authMode = authMode==='signin' ? 'signup' : 'signin';
+    document.getElementById('auth-title').textContent = translate(authMode);
+    document.getElementById('toggle-auth').innerHTML = authMode==='signin'
+      ? `${translate('no_account')} <b>${translate('signup')}</b>`
+      : `${translate('have_account')} <b>${translate('signin')}</b>`;
+  }
+  function handleAuth(){
+    const email=document.getElementById('email').value.toLowerCase();
+    const password=document.getElementById('password').value;
+    if(!email.endsWith('@gmail.com')) return alert("Email must end with @gmail.com");
+    if(authMode==='signup'){
+      if(db.users.some(u=>u.email===email)) return alert("User already exists.");
+      db.users.push({email,password,isAdmin:false}); saveData();
+      alert("Sign up successful! Please sign in."); toggleAuthMode();
+    }else{
+      const user=db.users.find(u=>u.email===email && u.password===password);
+      if(!user) return alert("Invalid credentials.");
+      state.currentUser=user; saveData(); checkAuth();
+    }
+  }
+  function checkAuth(){
+    if(state.currentUser){
+      document.getElementById('landing-page').style.display='none';
+      document.getElementById('app-container').style.display='block';
+      document.getElementById('current-user-display').textContent=state.currentUser.email;
+      const isAdmin=state.currentUser.isAdmin;
+      document.getElementById('history-btn').classList.toggle('hidden',!isAdmin);
+      document.getElementById('create-user-btn').classList.toggle('hidden',!isAdmin);
+      showSection(state.currentView || 'open-orders');
+    }else{
+      document.getElementById('landing-page').style.display='flex';
+      document.getElementById('app-container').style.display='none';
+    }
+  }
+  function logout(){ state.currentUser=null; saveData(); checkAuth(); }
+
+  // Navigation (delay renders so charts size to visible containers)
+  function showSection(sectionId){
+    state.currentView=sectionId; saveData();
+    document.querySelectorAll('main > section').forEach(sec=>sec.classList.add('hidden'));
+    document.getElementById(sectionId).classList.remove('hidden');
+    setTimeout(()=>{
+      if(sectionId==='create-order'){ populateStockDropdown(); document.getElementById('agent').value=state.currentUser?.email||''; }
+      if(sectionId==='open-orders') renderOrders('open');
+      if(sectionId==='closed-orders') renderOrders('closed');
+      if(sectionId==='statistics') renderStatistics();
+      if(sectionId==='history') renderHistory();
+      if(sectionId==='services-stocks') renderStockTree();
+    },50);
+  }
+
+  // Orders (renamed from Issues)
+  function generateOrderId(){ return 'ORD-'+Date.now().toString().slice(-6); }
+  function handleDynamicOrderType(){
+    const typeId=document.getElementById('order-type').value;
+    const item=db.stocks.find(s=>s.id===typeId);
+    const dyn=document.getElementById('dynamic-order-input');
+    if(item && item.isDynamic){ dyn.classList.remove('hidden'); } else { dyn.classList.add('hidden'); document.getElementById('dynamic-order-value').value=''; }
+  }
+  function saveOrder(){
+    const id=document.getElementById('edit-order-id').value;
+    const typeId=document.getElementById('order-type').value;
+    const stockItem=db.stocks.find(s=>s.id===typeId);
+    let typeName=stockItem?stockItem.name:'';
+    const dynVal=document.getElementById('dynamic-order-value').value;
+    if(dynVal) typeName+=`: ${dynVal}`;
+
+    const orderData={
+      id: id||generateOrderId(),
+      typeId, type:typeName,
+      customerName:document.getElementById('customer-name').value,
+      customerNumber:document.getElementById('customer-number').value,
+      code:document.getElementById('code').value,
+      address:document.getElementById('address').value,
+      agent:document.getElementById('agent').value,
+      dateOpened:document.getElementById('date-opened').value,
+      details:document.getElementById('order-details').value,
+      completionNotes:document.getElementById('completion-notes').value,
+      dateClosed:document.getElementById('date-closed').value,
+      status: document.getElementById('date-closed').value ? 'closed' : 'open',
+      quantitySold: parseInt(document.getElementById('quantity-sold').value)||0
+    };
+    if(!orderData.customerName || !orderData.dateOpened) return alert("Required fields missing.");
+
+    if(id){
+      const idx=db.orders.findIndex(i=>i.id===id);
+      db.orders[idx]={...db.orders[idx], ...orderData};
+      logHistory("Edited Order", `ID: ${id}`, id, orderData);
+    }else{
+      db.orders.push(orderData);
+      logHistory("Created Order", `ID: ${orderData.id}`, orderData.id, orderData);
+    }
+
+    if(orderData.status==='closed' && orderData.quantitySold>0 && stockItem?.stock!==null){
+      stockItem.stock=Math.max(0, stockItem.stock - orderData.quantitySold);
+      logHistory("Stock Reduced on Close", `${orderData.quantitySold} from ${stockItem.name}`, orderData.id, orderData);
+    }
+
+    saveData();
+    resetForm();
+    showSection(orderData.status==='open' ? 'open-orders' : 'closed-orders');
+  }
+  function editOrder(id){
+    if(!state.currentUser.isAdmin){
+      const code=prompt("Enter secret code:");
+      if(code!==ADMIN_PASS) return;
+    }
+    const order=db.orders.find(i=>i.id===id);
+    if(!order) return alert("Order not found.");
+
+    showSection('create-order');
+    document.getElementById('edit-order-id').value=order.id;
+    populateStockDropdown();
+    document.getElementById('order-type').value=order.typeId;
+    handleDynamicOrderType();
+    const stockItem=db.stocks.find(s=>s.id===order.typeId);
+    if(stockItem && stockItem.isDynamic){
+      const parts=order.type.split(': ');
+      if(parts.length>1) document.getElementById('dynamic-order-value').value=parts.slice(1).join(': ');
+    }
+    document.getElementById('customer-name').value=order.customerName;
+    document.getElementById('customer-number').value=order.customerNumber;
+    document.getElementById('code').value=order.code;
+    document.getElementById('address').value=order.address;
+    document.getElementById('agent').value=order.agent;
+    document.getElementById('date-opened').value=order.dateOpened;
+    document.getElementById('order-details').value=order.details;
+    document.getElementById('closing-section').classList.remove('hidden');
+    document.getElementById('completion-notes').value=order.completionNotes||'';
+    document.getElementById('date-closed').value=order.dateClosed||'';
+    document.getElementById('quantity-sold').value=order.quantitySold||0;
+  }
+  function closeOrder(){
+    if(!document.getElementById('date-closed').value) return alert("Select closing date.");
+    saveOrder();
+  }
+  function deleteOrder(id){
+    if(!state.currentUser.isAdmin){
+      const code=prompt("Enter secret code to delete:");
+      if(code!==ADMIN_PASS) return;
+    }
+    if(confirm("Delete this order?")){
+      const snap=db.orders.find(i=>i.id===id);
+      db.orders=db.orders.filter(i=>i.id!==id);
+      logHistory("Deleted Order", `ID: ${id}`, id, snap);
+      saveData();
+      showSection(state.currentView);
+    }
+  }
+  function resetForm(){
+    document.getElementById('edit-order-id').value='';
+    document.querySelectorAll('#create-order input:not([readonly]), #create-order textarea, #create-order select').forEach(el=>el.value='');
+    document.getElementById('quantity-sold').value=0;
+    document.getElementById('closing-section').classList.add('hidden');
+    document.getElementById('agent').value=state.currentUser?.email||'';
+    handleDynamicOrderType();
+  }
+  function renderOrderDetails(order){
+    if(!order) return '';
+    return `
+      <div class="issue-details">
+        <p><strong>${translate('customer_name')}:</strong> ${order.customerName} (${order.customerNumber})</p>
+        <p><strong>${translate('code')}:</strong> ${order.code}</p>
+        <p><strong>${translate('address')}:</strong> ${order.address||'-'}</p>
+        <p><strong>${translate('agent')}:</strong> ${order.agent}</p>
+        <p><strong>${translate('date_opened')}:</strong> ${order.dateOpened}</p>
+        <p><strong>${translate('order_details')}:</strong> ${order.details||'-'}</p>
+        ${order.status==='closed' ? `
+          <hr style="margin:10px 0;">
+          <p><strong>${translate('completion_notes')}:</strong> ${order.completionNotes||'-'}</p>
+          <p><strong>${translate('quantity_sold')}:</strong> ${order.quantitySold||0}</p>
+          <p><strong>${translate('date_closed')}:</strong> ${order.dateClosed}</p>
+        `:''}
+      </div>
+    `;
+  }
+  function renderOrders(status){
+    const container=document.getElementById(`${status}-orders-list`);
+    container.innerHTML='';
+    const orders=db.orders.filter(i=>i.status===status);
+    if(orders.length===0){ container.innerHTML=`<p>No ${status} orders found.</p>`; return; }
+    orders.forEach(order=>{
+      const div=document.createElement('div');
+      div.className='card';
+      div.style.marginBottom='10px';
+      div.innerHTML=`
+        <h3 style="margin:0;">${order.id} - ${order.type}</h3>
+        ${renderOrderDetails(order)}
+        <div style="margin-top:10px;">
+          <button onclick="editOrder('${order.id}')" class="secondary">${translate('edit')}</button>
+          <button onclick="deleteOrder('${order.id}')" class="danger">${translate('delete')}</button>
+        </div>
+      `;
+      container.appendChild(div);
+    });
+  }
+  function searchOrders(status){
+    const q=document.getElementById(`search-${status}`).value.toLowerCase();
+    const container=document.getElementById(`${status}-orders-list`);
+    container.innerHTML='';
+    const results=db.orders.filter(order=>
+      order.status===status && (
+        order.id.toLowerCase().includes(q) ||
+        order.customerName.toLowerCase().includes(q) ||
+        order.type.toLowerCase().includes(q) ||
+        (order.details||'').toLowerCase().includes(q)
+      )
+    );
+    if(results.length===0){ container.innerHTML='<p>No results.</p>'; return; }
+    results.forEach(order=>{
+      const div=document.createElement('div');
+      div.className='card'; div.style.marginBottom='10px';
+      div.innerHTML=`
+        <h3>${order.id} - ${order.type}</h3>
+        ${renderOrderDetails(order)}
+        <div style="margin-top:10px;">
+          <button onclick="editOrder('${order.id}')" class="secondary">${translate('edit')}</button>
+          <button onclick="deleteOrder('${order.id}')" class="danger">${translate('delete')}</button>
+        </div>
+      `;
+      container.appendChild(div);
+    });
+  }
+
+  // Services & Stocks (same logic)
+  function populateStockDropdown(){
+    const select=document.getElementById('order-type');
+    const keep=select.value;
+    select.innerHTML='<option value="">Select Type...</option>';
+    function add(parentId, indent=''){
+      db.stocks.filter(s=>s.parentId===parentId).forEach(stock=>{
+        const opt=document.createElement('option');
+        opt.value=stock.id;
+        opt.textContent=indent+stock.name+(stock.stock!==null?` (Stock: ${stock.stock})`:'');
+        select.appendChild(opt);
+        add(stock.id, indent+'---');
+      });
+    }
+    add(null);
+    if(keep && db.stocks.some(s=>s.id===keep)) select.value=keep;
+  }
+  function renderStockTree(){
+    const container=document.getElementById('stock-tree');
+    container.innerHTML='';
+    const parentSel=document.getElementById('parent-category');
+    parentSel.innerHTML=`<option value="">${translate('main_category')}</option>`;
+    function level(parentId, depth=0){
+      db.stocks.filter(s=>s.parentId===parentId).forEach(item=>{
+        const div=document.createElement('div');
+        div.style.marginLeft=(depth*20)+'px';
+        div.style.padding='5px 0';
+        div.style.borderBottom='1px solid #eee';
+        const info=item.stock!==null?` (Stock: ${item.stock})`:'';
+        div.innerHTML=`
+          <strong>${item.name}</strong> ${info}
+          ${state.currentUser.isAdmin?`
+            <button onclick="editStock('${item.id}')" class="secondary" style="padding:2px 5px; float:right; margin-left:5px;">✎</button>
+            <button onclick="deleteStock('${item.id}')" class="danger" style="padding:2px 5px; float:right;">🗑️</button>
+          `:''}
+        `;
+        container.appendChild(div);
+        const opt=document.createElement('option');
+        opt.value=item.id; opt.textContent='-'.repeat(depth)+item.name;
+        parentSel.appendChild(opt);
+        level(item.id, depth+1);
+      });
+    }
+    level(null);
+  }
+  function editStock(id){ /* ... same logic ... */ 
+    const item=db.stocks.find(s=>s.id===id);
+    if(!item) return;
+    document.getElementById('stock-form-title').textContent=translate('updating');
+    document.getElementById('new-category-name').value=item.name;
+    document.getElementById('new-category-stock').value=item.stock!==null?item.stock:'';
+    document.getElementById('parent-category').value=item.parentId||'';
+    document.getElementById('editing-stock-id').value=id;
+    document.getElementById('stock-action-btn').textContent=translate('update');
+    document.getElementById('cancel-edit-btn').classList.remove('hidden');
+    document.getElementById('stock-form-title').scrollIntoView({behavior:'smooth'});
+  }
+  function cancelEditStock(){ /* ... same logic ... */
+    document.getElementById('stock-form-title').textContent=translate('add_category');
+    document.getElementById('new-category-name').value='';
+    document.getElementById('new-category-stock').value='';
+    document.getElementById('parent-category').value='';
+    document.getElementById('editing-stock-id').value='';
+    document.getElementById('stock-action-btn').textContent=translate('add');
+    document.getElementById('cancel-edit-btn').classList.add('hidden');
+  }
+  function saveStockCategory(){ /* ... same logic ... */
+    const editingId=document.getElementById('editing-stock-id').value;
+    const name=document.getElementById('new-category-name').value.trim();
+    const parentId=(document.getElementById('parent-category').value)||null;
+    const stockVal=document.getElementById('new-category-stock').value;
+    const stock = stockVal==='' ? null : parseInt(stockVal);
+    if(!name) return;
+
+    if(editingId){
+      const item=db.stocks.find(s=>s.id===editingId);
+      if(item){
+        const prev=item.stock;
+        item.name=name; item.parentId=parentId; item.stock=stock;
+        logHistory("Updated Stock Category", `${name} (Stock: ${prev} → ${stock})`);
+      }
+      cancelEditStock();
+    }else{
+      db.stocks.push({id:'s'+Date.now(), name, stock, parentId});
+      logHistory("Added Stock Category", name);
+    }
+    saveData(); renderStockTree(); populateStockDropdown();
+  }
+  function deleteStock(id){ /* ... same logic ... */
+    if(!state.currentUser.isAdmin) return;
+    if(confirm("Delete category? This affects related orders.")){
+      db.stocks=db.stocks.filter(s=>s.id!==id && s.parentId!==id);
+      logHistory("Deleted Stock Category", `ID: ${id}`);
+      saveData(); renderStockTree(); populateStockDropdown();
+    }
+  }
+  function searchStocks(){ /* ... same logic ... */
+    const q=document.getElementById('stock-search').value.toLowerCase();
+    const container=document.getElementById('stock-tree');
+    container.innerHTML='';
+    db.stocks.filter(s=>s.name.toLowerCase().includes(q)).forEach(item=>{
+      const div=document.createElement('div');
+      div.className='card'; div.style.padding='10px'; div.style.marginBottom='6px';
+      div.innerHTML=`<strong>${item.name}</strong> (Stock: ${item.stock!==null?item.stock:'N/A'})`;
+      container.appendChild(div);
+    });
+  }
+
+  // Admin
+  function createNewUser(){
+    if(!state.currentUser.isAdmin) return;
+    const email=document.getElementById('new-user-email').value.toLowerCase();
+    const pass=document.getElementById('new-user-pass').value;
+    if(!email.endsWith('@gmail.com') || db.users.some(u=>u.email===email)) return alert("Invalid email or user already exists.");
+    db.users.push({email,password:pass,isAdmin:false});
+    logHistory("Created User", email);
+    saveData(); alert("User created.");
+    document.getElementById('new-user-email').value=''; document.getElementById('new-user-pass').value='';
+  }
+
+  // History (adapted for orders)
+  function renderHistory(){
+    if(!state.currentUser.isAdmin) return;
+    const container=document.getElementById('history-list');
+    container.innerHTML='';
+    if(db.history.length===0){ container.innerHTML='<p>No history yet.</p>'; return; }
+
+    db.history.forEach(entry=>{
+      const orderExists = entry.orderId && db.orders.some(i=>i.id===entry.orderId);
+      const el=document.createElement('div');
+      el.className='history-entry';
+      el.innerHTML=`
+        <div class="history-entry-header">
+          <div><strong>${entry.timestamp}</strong> - ${entry.user}</div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            ${orderExists?`
+              <div style="display:flex; gap:6px;">
+                <button onclick="editOrder('${entry.orderId}')" class="secondary">${translate('edit')}</button>
+                <button onclick="deleteOrder('${entry.orderId}')" class="danger">${translate('delete')}</button>
+              </div>`:''}
+            <button onclick="deleteHistoryEntry('${entry.id}')" class="danger" title="${translate('delete_entry')}" style="padding:5px 8px;">🗑️</button>
+          </div>
+        </div>
+        <p><strong>${translate('action')}:</strong> ${entry.action}</p>
+        <p>${entry.details}</p>
+        ${entry.snapshot ? `<h4 style="margin-top:10px;">${translate('history_entry')}:</h4>${renderOrderDetails(entry.snapshot)}`:''}
+      `;
+      container.appendChild(el);
+    });
+  }
+  function deleteHistoryEntry(entryId){
+    if(confirm(translate('confirm_delete_entry'))){
+      db.history=db.history.filter(h=>h.id!==entryId);
+      saveData(); renderHistory();
+    }
+  }
+  function clearHistory(){
+    if(confirm(translate('confirm_delete_entry'))){
+      db.history=[]; saveData(); renderHistory();
+    }
+  }
+
+  // ENHANCED STATISTICS with YEARLY COMPARISON and EXCEL EXPORT
+  let statusChart, monthlyChart, yearlyChart, salesChart;
+  function renderStatistics(){
+    const openCount=db.orders.filter(i=>i.status==='open').length;
+    const closedCount=db.orders.filter(i=>i.status==='closed').length;
+
+    // Status Pie Chart
+    if(statusChart) statusChart.destroy();
+    const ctx1=document.getElementById('statusChart').getContext('2d');
+    statusChart=new Chart(ctx1,{
+      type:'pie',
+      data:{ labels:[translate('open'), translate('closed')],
+        datasets:[{ data:[openCount,closedCount], backgroundColor:['#FF9800','#4CAF50'] }]},
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}} }
+    });
+
+    // Monthly Comparison
+    if(monthlyChart) monthlyChart.destroy();
+    const monthly={};
+    db.orders.forEach(i=>{
+      if(i.dateOpened){
+        const m=i.dateOpened.substring(0,7); monthly[m]=(monthly[m]||0)+1;
+      }
+    });
+    const months=Object.keys(monthly).sort();
+    const monthlyValues=months.map(m=>monthly[m]);
+    const ctx2=document.getElementById('monthlyChart').getContext('2d');
+    monthlyChart=new Chart(ctx2,{
+      type:'bar',
+      data:{ labels:months, datasets:[{ label:translate('open_orders'), data:monthlyValues, backgroundColor:'#0047AB' }] },
+      options:{ responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true, ticks:{ precision:0 }}}}
+    });
+
+    // NEW: Yearly Comparison
+    if(yearlyChart) yearlyChart.destroy();
+    const yearly={};
+    db.orders.forEach(i=>{
+      if(i.dateOpened){
+        const y=i.dateOpened.substring(0,4); yearly[y]=(yearly[y]||0)+1;
+      }
+    });
+    const years=Object.keys(yearly).sort();
+    const yearlyValues=years.map(y=>yearly[y]);
+    const ctx3=document.getElementById('yearlyChart').getContext('2d');
+    yearlyChart=new Chart(ctx3,{
+      type:'line',
+      data:{ labels:years, datasets:[{ 
+        label:translate('yearly_comparison'), 
+        data:yearlyValues, 
+        borderColor:'#FF6384',
+        backgroundColor:'rgba(255,99,132,0.2)',
+        fill:true
+      }] },
+      options:{ responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true, ticks:{ precision:0 }}}}
+    });
+
+    // NEW: Sales Performance Chart
+    if(salesChart) salesChart.destroy();
+    const salesData={};
+    db.orders.filter(o=>o.status==='closed').forEach(o=>{
+      const m=o.dateClosed?.substring(0,7);
+      if(m) salesData[m]=(salesData[m]||0)+(o.quantitySold||0);
+    });
+    const salesMonths=Object.keys(salesData).sort();
+    const salesValues=salesMonths.map(m=>salesData[m]);
+    const ctx4=document.getElementById('salesChart').getContext('2d');
+    salesChart=new Chart(ctx4,{
+      type:'bar',
+      data:{ labels:salesMonths, datasets:[{ 
+        label:translate('sales_performance'), 
+        data:salesValues, 
+        backgroundColor:'#28a745'
+      }] },
+      options:{ responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true, ticks:{ precision:0 }}}}
+    });
+
+    renderStockTable();
+    renderTypeStats();
+  }
+  function renderStockTable(){
+    const table=document.getElementById('stock-stats-table');
+    table.innerHTML=`<tr><th>Category</th><th>Current Stock</th><th>Total Sold</th></tr>`;
+    const items=db.stocks.filter(s=>s.stock!==null);
+    if(items.length===0){ table.innerHTML+=`<tr><td colspan="3">No stock items tracked.</td></tr>`; return; }
+    items.forEach(stock=>{
+      const sold=db.orders.filter(i=>i.typeId===stock.id && i.status==='closed')
+        .reduce((sum,i)=>sum+(i.quantitySold||0),0);
+      table.innerHTML+=`<tr><td>${stock.name}</td><td>${stock.stock}</td><td>${sold}</td></tr>`;
+    });
+  }
+  function renderTypeStats(){
+    const box=document.getElementById('type-stats');
+    box.innerHTML='';
+    const counts={};
+    db.orders.forEach(i=>{
+      const base=(i.type||'').split(':')[0].trim();
+      if(!base) return;
+      counts[base]=(counts[base]||0)+1;
+    });
+    if(Object.keys(counts).length===0){ box.innerHTML='<p>No data available.</p>'; return; }
+    const ul=document.createElement('ul');
+    ul.style.margin='0'; ul.style.paddingLeft='18px';
+    Object.keys(counts).sort().forEach(k=>{
+      const li=document.createElement('li');
+      li.textContent=`${k}: ${counts[k]}`;
+      ul.appendChild(li);
+    });
+    box.appendChild(ul);
+  }
+
+  // NEW: Excel Export Functionality
+  function exportToExcel(){
+    try{
+      const wb = XLSX.utils.book_new();
+      
+      // Orders Summary Sheet
+      const ordersData = db.orders.map(order => ({
+        'Order ID': order.id,
+        'Customer Name': order.customerName,
+        'Customer Number': order.customerNumber,
+        'Type': order.type,
+        'Code': order.code,
+        'Agent': order.agent,
+        'Date Opened': order.dateOpened,
+        'Date Closed': order.dateClosed || 'N/A',
+        'Status': order.status,
+        'Quantity Sold': order.quantitySold || 0,
+        'Details': order.details || ''
+      }));
+      const ws1 = XLSX.utils.json_to_sheet(ordersData);
+      XLSX.utils.book_append_sheet(wb, ws1, "Orders Summary");
+
+      // Monthly Statistics Sheet
+      const monthlyStats = {};
+      db.orders.forEach(o => {
+        if(o.dateOpened){
+          const month = o.dateOpened.substring(0,7);
+          if(!monthlyStats[month]) monthlyStats[month] = {month, open:0, closed:0, totalSold:0};
+          if(o.status==='open') monthlyStats[month].open++;
+          else { monthlyStats[month].closed++; monthlyStats[month].totalSold += (o.quantitySold||0); }
+        }
+      });
+      const monthlyArray = Object.values(monthlyStats);
+      const ws2 = XLSX.utils.json_to_sheet(monthlyArray);
+      XLSX.utils.book_append_sheet(wb, ws2, "Monthly Stats");
+
+      // Yearly Statistics Sheet
+      const yearlyStats = {};
+      db.orders.forEach(o => {
+        if(o.dateOpened){
+          const year = o.dateOpened.substring(0,4);
+          if(!yearlyStats[year]) yearlyStats[year] = {year, orders:0, totalSold:0};
+          yearlyStats[year].orders++;
+          if(o.status==='closed') yearlyStats[year].totalSold += (o.quantitySold||0);
+        }
+      });
+      const yearlyArray = Object.values(yearlyStats);
+      const ws3 = XLSX.utils.json_to_sheet(yearlyArray);
+      XLSX.utils.book_append_sheet(wb, ws3, "Yearly Stats");
+
+      // Stock Levels Sheet
+      const stockData = db.stocks.filter(s=>s.stock!==null).map(stock => {
+        const sold = db.orders.filter(o=>o.typeId===stock.id && o.status==='closed')
+          .reduce((sum,o)=>sum+(o.quantitySold||0),0);
+        return {
+          'Category': stock.name,
+          'Current Stock': stock.stock,
+          'Total Sold': sold,
+          'Remaining': stock.stock
+        };
+      });
+      const ws4 = XLSX.utils.json_to_sheet(stockData);
+      XLSX.utils.book_append_sheet(wb, ws4, "Stock Levels");
+
+      // Order Types Summary
+      const typeCounts = {};
+      db.orders.forEach(o => {
+        const base = (o.type||'').split(':')[0].trim();
+        if(base) typeCounts[base] = (typeCounts[base]||0) + 1;
+      });
+      const typeData = Object.keys(typeCounts).map(type => ({
+        'Order Type': type,
+        'Count': typeCounts[type]
+      }));
+      const ws5 = XLSX.utils.json_to_sheet(typeData);
+      XLSX.utils.book_append_sheet(wb, ws5, "Order Types");
+
+      // Generate filename with timestamp
+      const timestamp = new Date().toISOString().slice(0,19).replace(/:/g,'-');
+      const filename = `Customer_Orders_Statistics_${timestamp}.xlsx`;
+      
+      XLSX.writeFile(wb, filename);
+      alert(`Statistics exported successfully as ${filename}`);
+    }catch(error){
+      console.error('Export error:', error);
+      alert('Export failed. Please try again.');
+    }
+  }
+
+  function printStatistics(){
+    const printContent = `
+      <html>
+        <head>
+          <title>Statistics Report</title>
+          <style>
+            body{font-family:Arial,sans-serif; margin:20px;}
+            table{border-collapse:collapse; width:100%; margin:20px 0;}
+            th,td{border:1px solid #ddd; padding:8px; text-align:left;}
+            th{background:#f2f2f2;}
+            h1,h2{color:#0047AB;}
+          </style>
+        </head>
+        <body>
+          <h1>Customer Orders & Inquiries - Statistics Report</h1>
+          <p>Generated on: ${new Date().toLocaleString()}</p>
+          
+          <h2>Summary</h2>
+          <p>Total Open Orders: ${db.orders.filter(o=>o.status==='open').length}</p>
+          <p>Total Closed Orders: ${db.orders.filter(o=>o.status==='closed').length}</p>
+          
+          <h2>Stock Levels</h2>
+          ${document.getElementById('stock-stats-table').outerHTML}
+          
+          <h2>Order Types</h2>
+          ${document.getElementById('type-stats').innerHTML}
+        </body>
+      </html>
+    `;
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.print();
+  }
+
+  // Theme & Language
+  function toggleNightMode(){ state.nightMode=!state.nightMode; applyTheme(); saveData(); }
+  function applyTheme(){ document.body.classList.toggle('night-mode', state.nightMode); }
+  function setLanguage(lang){ state.currentLang=lang; applyLanguage(); saveData(); showSection(state.currentView); }
+  function applyLanguage(){
+    document.documentElement.lang=state.currentLang;
+    document.documentElement.dir = (state.currentLang==='ar') ? 'rtl' : 'ltr';
+    document.querySelectorAll('[data-translate]').forEach(el=>{
+      const key=el.getAttribute('data-translate');
+      const t=translations[state.currentLang]?.[key] || translations.en[key];
+      if(!t) return;
+      if(el.tagName==='INPUT' && el.hasAttribute('placeholder')) el.placeholder=t;
+      else el.textContent=t;
+    });
+  }
+  function translate(key){ return translations[state.currentLang]?.[key] || translations.en[key] || key; }
+</script>
+</body>
+</html>
+
+
